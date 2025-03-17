@@ -1,2 +1,2 @@
 pyserial>=3.5
-python-tk>=0.1.0
+tk-tools>=0.17.0

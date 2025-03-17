@@ -31,7 +31,9 @@ call venv\Scripts\activate.bat
 
 rem Install requirements
 echo Installing required packages...
+pause
 pip install -r requirements.txt
+pause
 
 rem Launch the application
 echo Launching Thermal Bath Controller...
