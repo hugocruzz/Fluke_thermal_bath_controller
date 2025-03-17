@@ -137,8 +137,10 @@ class MainWindow:
         # Use more compact layout on Pi
         entry_width = 6 if self.is_raspberry_pi else 10
         
-        ttk.Label(stability_frame, text="Hold Time (s):").grid(row=0, column=0, sticky=tk.W, padx=5)
-        self.hold_time_var = tk.IntVar(value=300)
+        # Change label from "Hold Time (s):" to "Hold Time (min):"
+        ttk.Label(stability_frame, text="Hold Time (min):").grid(row=0, column=0, sticky=tk.W, padx=5)
+        # Keep the same variable but set a reasonable default in minutes (5 minutes instead of 300 seconds)
+        self.hold_time_var = tk.IntVar(value=5)
         ttk.Entry(stability_frame, textvariable=self.hold_time_var, width=entry_width).grid(row=0, column=1, sticky=tk.W, padx=5)
         
         ttk.Label(stability_frame, text="Stability (°C):").grid(row=0, column=2, sticky=tk.W, padx=5)
@@ -378,7 +380,7 @@ class MainWindow:
         
         # Stability settings
         config["Stability"] = {
-            "hold_time": str(self.hold_time_var.get()),
+            "hold_time": str(self.hold_time_var.get() * 60),  # Save in seconds for compatibility
             "stability_window": str(self.stability_window_var.get()),
             "reading_interval": str(self.reading_interval_var.get()),
             "timeout": str(self.timeout_duration_var.get()),
@@ -516,7 +518,7 @@ class MainWindow:
                 return
             
             # Get stability parameters
-            hold_time = self.hold_time_var.get()
+            hold_time = self.hold_time_var.get() * 60  # Convert minutes to seconds
             stability_window = self.stability_window_var.get()
             reading_interval = self.reading_interval_var.get()
             timeout_duration = self.timeout_duration_var.get()
@@ -588,13 +590,15 @@ class MainWindow:
                     if is_stable:
                         if stability_start_time is None:
                             stability_start_time = current_time
-                            self.log_message(f"Temperature stable at {setpoint}°C, holding for {hold_time} seconds")
+                            hold_time_min = hold_time / 60  # Convert seconds back to minutes for display
+                            self.log_message(f"Temperature stable at {setpoint}°C, holding for {hold_time_min} minutes")
                         
                         # Update status in log data
                         remaining = hold_time - (current_time - stability_start_time)
                         if remaining > 0:
                             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            status = f"Stable - Holding ({int(remaining)}s remaining)"
+                            remaining_min = remaining / 60  # Convert to minutes
+                            status = f"Stable - Holding ({remaining_min:.1f}min remaining)"
                             if temp is not None:
                                 self.log_data.append([timestamp, step_number, setpoint, temp, status])
                         
@@ -652,6 +656,7 @@ class MainWindow:
             
             try:
                 # Try to extract the temperature value from the response
+                print(response)
                 temp = float(response.split(" ")[-2])
                 return temp
             except ValueError:
@@ -742,7 +747,8 @@ class MainWindow:
             
             # Load stability settings
             if 'Stability' in config:
-                self.hold_time_var.set(config['Stability'].getint('hold_time', 300))
+                # Convert from seconds to minutes when loading
+                self.hold_time_var.set(config['Stability'].getint('hold_time', 300) // 60)
                 self.stability_window_var.set(config['Stability'].getfloat('stability_window', 0.05))
                 self.reading_interval_var.set(config['Stability'].getfloat('reading_interval', 5.0))
                 self.timeout_duration_var.set(config['Stability'].getint('timeout', 3600))
